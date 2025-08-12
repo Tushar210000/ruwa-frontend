@@ -5,7 +5,7 @@ const cors = require('cors');
 require('dotenv').config();
 const { connectDB } = require('./connection');
 const authRoutes = require("./routes/authRoutes");
-
+const applyInsurance=require("./routes/applyInsuranceRoutes")
 const app = express();
 const PORT = process.env.PORT || 8000;
 
@@ -20,10 +20,15 @@ connectDB();
 const popupRoutes = require("./routes/PopupRouter");
 const contactRoutes = require("./routes/contactRoutes");
 const janArogyaRoutes=require("./routes/janArogyaRoutes")
+const ambulanceRoutes=require("./routes/ambulanceBookingRoutes")
+const applyKendra=require('./routes/janArogyaApplyRoutes')
 app.use("/api/popup", popupRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/services/janarogya",janArogyaRoutes)
+app.use("/api/services/ambulance-booking",ambulanceRoutes)
+app.use("/api/services/apply-insurance",applyInsurance)
+app.use("/api/services/apply-kendra",applyKendra)
 // Start server
 app.listen(PORT, () => {
   console.log(`Server started on port ${PORT}`);

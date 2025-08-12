@@ -1,126 +1,99 @@
-const JanarogyaApplication = require('../model/janArogyaApplication');
-const User = require('../model/user');
+const JanArogyaApplication = require("../model/janArogyaApplication");
 
-// Fetch user's applications
-exports.getJanarogyaApplications = async (req, res) => {
+const buildApplication = async (req, res, forUserId) => {
   try {
-    const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ message: "User not found." });
+    const { name, aadhar, mobile, state, district } = req.body;
 
-    const applications = await JanarogyaApplication.find({ userId: user._id });
-    res.status(200).json(applications);
-  } catch (error) {
-    res.status(500).json({ message: "Error fetching applications", error: error.message });
-  }
-};
-
-// Withdraw an application
-exports.withdrawApplication = async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ message: "User not found." });
-
-    const applicationId = req.params.id;
-    const application = await JanarogyaApplication.findOne({ _id: applicationId, userId: user._id });
-
-    if (!application) {
-      return res.status(404).json({ message: "Application not found or access denied." });
+    // Check duplicate Aadhaar
+    const existing = await JanArogyaApplication.findOne({ aadhar });
+    if (existing) {
+      return res.status(400).json({ message: "Aadhaar number already registered" });
     }
 
-    if (application.status !== 'pending') {
-      return res.status(400).json({ message: "Only pending applications can be withdrawn." });
-    }
-
-    application.status = 'withdrawn';
-    await application.save();
-
-    res.status(200).json({ message: "Application withdrawn successfully.", application });
-  } catch (error) {
-    res.status(500).json({ message: "Error withdrawing application", error: error.message });
-  }
-};
-
-// Apply for Jan Arogya
-exports.applyJanarogya = async (req, res) => {
-    console.log("api hitok")
-  try {
-    const user = await User.findById(req.user.id);
-    if (!user) {
-      return res.status(404).json({ message: "User not found. Please register first." });
-    }
-
-    const { fullName, mobileNumber, aadhaarNumber, state, district } = req.body;
-
-    const files = {
-  incomeCertificate: req.files['income_certificate']?.[0]?.originalname ,
-  casteCertificate: req.files['caste_certificate']?.[0]?.originalname ,
-  rationId: req.files['ration_id']?.[0]?.originalname || null,
-};
-
-
-    const newApplication = new JanarogyaApplication({
-      userId: user._id,
-      fullName,
-      mobileNumber,
-      aadhaarNumber,
+    const app = new JanArogyaApplication({
+      name,
+      aadhar,
+      mobile,
       state,
       district,
-      files,
-      status: 'pending',
+      appliedBy: req.user.id,
+      forUser: forUserId,
+
+      income_certificate: req.files?.income_certificate?.[0]?.buffer || null,
+      caste_certificate: req.files?.caste_certificate?.[0]?.buffer || null,
+      ration_id: req.files?.ration_id?.[0]?.buffer || null
     });
 
-    await newApplication.save();
+    await app.save();
+    res.status(201).json({ message: "Application submitted", app });
 
-    res.status(201).json({
-      message: "Jan Arogya application submitted successfully!",
-      applicationId: newApplication._id,
-    });
+  } catch (err) {
+    console.log(err.message)
+    res.status(500).json({ message: "Error applying", error: err.message });
 
-  } catch (error) {
-    if (error.code === 11000) {
-      return res.status(409).json({ message: "Aadhaar number already exists." });
-    }
-    console.error("Application error:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
-// Get all applications (Admin only)
+exports.userApplyJanarogya = (req, res) => buildApplication(req, res, req.user.id);
+
+exports.applyJanarogya = (req, res) => {
+  if (!req.body.forUserId) {
+    return res.status(400).json({ message: "forUserId is required" });
+  }
+  return buildApplication(req, res, req.body.forUserId);
+};
+
+exports.getUserApplication = async (req, res) => {
+  try {
+    const apps = await JanArogyaApplication.find({ forUser: req.user.id });
+    res.json(apps);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching user application", error: err.message });
+  }
+};
+
+exports.getJanarogyaApplications = async (req, res) => {
+  try {
+    const apps = await JanArogyaApplication.find({ appliedBy: req.user.id }).populate("forUser", "name email");
+    res.json(apps);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching applications", error: err.message });
+  }
+};
+
 exports.getAllApplications = async (req, res) => {
   try {
-    if (!req.user.isAdmin) {
-      return res.status(403).json({ message: "Access denied. Admin only." });
-    }
-
-    const applications = await JanarogyaApplication.find({});
-    res.status(200).json(applications);
-  } catch (error) {
-    res.status(500).json({ message: "Error fetching applications", error: error.message });
+    const apps = await JanArogyaApplication.find().populate("appliedBy forUser", "name role email");
+    res.json(apps);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching all applications", error: err.message });
   }
 };
 
-// Update status (Admin only)
 exports.updateApplicationStatus = async (req, res) => {
   try {
-    if (!req.user.isAdmin) {
-      return res.status(403).json({ message: "Access denied. Admin only." });
+    const app = await JanArogyaApplication.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true });
+    res.json({ message: "Status updated", app });
+  } catch (err) {
+    res.status(500).json({ message: "Error updating status", error: err.message });
+  }
+};
+
+exports.withdrawApplication = async (req, res) => {
+  try {
+    const app = await JanArogyaApplication.findById(req.params.id);
+    if (!app) return res.status(404).json({ message: "Application not found" });
+
+    const isOwner = String(app.appliedBy) === req.user.id;
+    const isForUser = String(app.forUser) === req.user.id;
+    if (!isOwner && !isForUser) {
+      return res.status(403).json({ message: "Not authorized" });
     }
 
-    const { id } = req.params;
-    const { status } = req.body;
-
-    const application = await JanarogyaApplication.findByIdAndUpdate(
-      id,
-      { status },
-      { new: true, runValidators: true }
-    );
-
-    if (!application) {
-      return res.status(404).json({ message: "Application not found." });
-    }
-
-    res.status(200).json({ message: "Status updated successfully", application });
-  } catch (error) {
-    res.status(500).json({ message: "Error updating status", error: error.message });
+    app.status = "WITHDRAWN";
+    await app.save();
+    res.json({ message: "Application withdrawn", app });
+  } catch (err) {
+    res.status(500).json({ message: "Error withdrawing application", error: err.message });
   }
 };

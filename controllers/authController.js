@@ -4,8 +4,8 @@ const { generateToken } = require("../utils/jwt");
 
 // REGISTER
 exports.register = async (req, res) => {
-  const { name, phone, password } = req.body;
-  if (!name || !phone || !password) {
+  const { name, phone, password, role } = req.body;
+  if (!name || !phone || !password || !role) {
     return res.status(400).json({ message: "All fields are required" });
   }
 
@@ -13,12 +13,13 @@ exports.register = async (req, res) => {
   if (user) return res.status(400).json({ message: "User already exists" });
 
   const hashed = await bcrypt.hash(password, 10);
-  user = new User({ name, phone, password: hashed });
+  user = new User({ name, phone, password: hashed, role });
   await user.save();
 
   const token = generateToken(user);
-  res.json({ message: "Registered", token });
+  res.json({ message: "Registered", token, role: user.role });
 };
+
 
 // LOGIN via password
 exports.login = async (req, res) => {
@@ -30,6 +31,7 @@ exports.login = async (req, res) => {
   if (!ok) return res.status(401).json({ message: "Incorrect password" });
 
   const token = generateToken(user);
+  console.log(token.role)
   res.json({ message: "Logged in", token });
 };
 
@@ -47,6 +49,7 @@ exports.resetPassword = async (req, res) => {
 exports.getProfile = async (req, res) => {
   try {
     const userId = req.user.id; // set in middleware
+    console.log(userId)
     const user = await User.findById(userId).select("-password"); // exclude password
 
     if (!user) return res.status(404).json({ message: "User not found" });

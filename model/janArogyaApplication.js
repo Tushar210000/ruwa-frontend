@@ -1,18 +1,24 @@
 const mongoose = require("mongoose");
-const janarogyaSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  fullName: { type: String, required: true },
-  mobileNumber: { type: String, required: true },
-  aadhaarNumber: { type: String, unique: true, required: true },
+
+const janArogyaSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  aadhar: { type: String, required: true, unique: true },
+  mobile: { type: String, required: true },
   state: { type: String, required: true },
   district: { type: String, required: true },
-  files: {
-    
-    incomeCertificate: { type: String ,required:true},
-    casteCertificate: { type: String ,required:true},
-    rationId: { type: String,required:true },
-  },
-  status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
-  createdAt: { type: Date, default: Date.now }
-});
-module.exports = mongoose.model("JanarogyaApplication", janarogyaSchema);
+
+  income_certificate: String,     // storing file as buffer
+  caste_certificate: String,      // optional
+  ration_id: String,               // ration card file
+
+  appliedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  forUser: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+
+  status: {
+    type: String,
+    enum: ["PENDING", "APPROVED", "REJECTED", "WITHDRAWN"],
+    default: "PENDING"
+  }
+}, { timestamps: true });
+
+module.exports = mongoose.model("JanArogyaApplication", janArogyaSchema);

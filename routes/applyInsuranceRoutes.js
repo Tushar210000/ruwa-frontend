@@ -1,10 +1,10 @@
 const express = require("express");
 const router = express.Router();
-const janCtrl = require("../controllers/janArogyaController");
+const insCtrl = require("../controllers/applyInsuranceController");
 const { auth, authorizeRole } = require("../middlewares/auth");
 const multer = require("multer");
 
-// In-memory file storage like applyInsurance
+// In-memory file storage (like JanArogya)
 const upload = multer({ storage: multer.memoryStorage() });
 
 /**
@@ -17,18 +17,19 @@ router.post(
   auth,
   authorizeRole("USER"),
   upload.fields([
-    { name: "income_certificate", maxCount: 1 },
-    { name: "caste_certificate", maxCount: 1 },
-    { name: "ration_id", maxCount: 1 }
+    { name: "id_proof", maxCount: 1 },
+    { name: "passport_photo", maxCount: 1 },
+    { name: "medical_documents", maxCount: 1 },
+    { name: "income_certificate", maxCount: 1 }
   ]),
-  janCtrl.userApplyJanarogya
+  insCtrl.userApplyInsurance
 );
 
 router.get(
   "/user",
   auth,
   authorizeRole("USER"),
-  janCtrl.getUserApplication
+  insCtrl.getUserInsuranceApplications
 );
 
 /**
@@ -41,25 +42,26 @@ router.post(
   auth,
   authorizeRole("EMPLOYEE"),
   upload.fields([
-    { name: "income_certificate", maxCount: 1 },
-    { name: "caste_certificate", maxCount: 1 },
-    { name: "ration_id", maxCount: 1 }
+    { name: "id_proof", maxCount: 1 },
+    { name: "passport_photo", maxCount: 1 },
+    { name: "medical_documents", maxCount: 1 },
+    { name: "income_certificate", maxCount: 1 }
   ]),
-  janCtrl.applyJanarogya
+  insCtrl.applyInsurance
 );
 
 router.get(
   "/employee",
   auth,
   authorizeRole("EMPLOYEE"),
-  janCtrl.getJanarogyaApplications
+  insCtrl.getEmployeeInsuranceApplications
 );
 
 router.patch(
   "/employee/withdraw/:id",
   auth,
   authorizeRole("EMPLOYEE", "USER"),
-  janCtrl.withdrawApplication
+  insCtrl.withdrawInsuranceApplication
 );
 
 /**
@@ -71,14 +73,14 @@ router.get(
   "/admin/all",
   auth,
   authorizeRole("ADMIN"),
-  janCtrl.getAllApplications
+  insCtrl.getAllInsuranceApplications
 );
 
 router.patch(
   "/admin/status/:id",
   auth,
   authorizeRole("ADMIN"),
-  janCtrl.updateApplicationStatus
+  insCtrl.updateInsuranceApplicationStatus
 );
 
 module.exports = router;

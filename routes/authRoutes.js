@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const ctrl = require("../controllers/authController");
-const auth = require("../middlewares/auth"); // Make sure this file exists and exports a function
+const {auth} = require("../middlewares/auth"); // Make sure this file exists and exports a function
 
 // Public routes
 router.post("/register", ctrl.register);
@@ -9,8 +9,8 @@ router.post("/login", ctrl.login);
 router.post("/reset", ctrl.resetPassword);
 router.get("/profile", auth, ctrl.getProfile);
 // Protected route example
-router.get("/profile", auth, (req, res) => {
-  res.json({ user: req.user });
-});
+// router.get("/profile", auth, (req, res) => {
+//   res.json({ user: req.user });
+// });
 
 module.exports = router;
