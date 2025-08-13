@@ -13,10 +13,10 @@ const applyInsuranceSchema = new mongoose.Schema({
   pincode: String,
   insuranceType: String,
 
-  id_proof: Buffer,
-  passport_photo: Buffer,
-  medical_documents: Buffer,
-  income_certificate: Buffer,
+  id_proof: String,
+  passport_photo: String,
+  medical_documents: String,
+  income_certificate: String,
 
   appliedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   forUser: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
